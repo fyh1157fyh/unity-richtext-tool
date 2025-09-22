@@ -4,7 +4,7 @@
 帮助美术和策划快速生成 `<b> <i> <color> <size> <u> <s> <mark> <link>` 等标签，避免手写出错。
 
 ## 在线使用
-👉 [GitHub Pages 地址](https://<你的用户名>.github.io/unity-richtext-tool/)
+👉 [GitHub Pages 地址](https://fyh1157fyh.github.io/unity-richtext-tool/)
 
 在飞书云文档里可以直接插入“网页”块，粘贴上面的地址，全员可用。
 

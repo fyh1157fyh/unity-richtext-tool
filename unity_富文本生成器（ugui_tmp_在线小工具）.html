@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unity 富文本生成器 · UGUI / TextMeshPro</title>
+  <style>
+    :root{--bg:#0b0d12;--panel:#141821;--muted:#8a93a5;--text:#e6ebf5;--acc:#5ab0ff;--border:#232b3a;--btn:#1a2030;--btnh:#222a3c}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b0d12 0%,#0f1320 100%);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.2px}
+    .mode{display:flex;gap:8px;align-items:center}
+    .toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    .toggle button{padding:8px 12px;background:var(--btn);color:var(--muted);border:0;cursor:pointer}
+    .toggle button.active{background:var(--acc);color:#0a0f18}
+    .hint{color:var(--muted);font-size:12px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.28)}
+    .card h2{margin:0;font-size:13px;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--border)}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:10px;border-bottom:1px solid var(--border)}
+    .toolbar button,.toolbar .chip{background:var(--btn);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;cursor:pointer}
+    .toolbar button:hover{background:var(--btnh)}
+    .toolbar .chip{display:inline-flex;align-items:center;gap:8px}
+    .toolbar input[type="color"]{width:22px;height:22px;border:none;background:none;padding:0;cursor:pointer}
+    .toolbar input[type="number"]{width:70px;background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text)}
+    textarea{width:100%;min-height:240px;background:#0e1220;color:var(--text);border:0;border-bottom-left-radius:12px;border-bottom-right-radius:12px;padding:12px 12px 44px 12px;outline:none;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px;border-top:1px solid var(--border)}
+    .ghost{color:var(--muted)}
+    .pill{font-size:11px;background:#0f1524;border:1px solid #1a2236;color:#9bb3d1;padding:2px 6px;border-radius:999px}
+    .kbd{font-family:ui-monospace,Consolas,monospace;border:1px solid var(--border);padding:0 6px;border-radius:6px;background:#0e1320;color:#9fb3d7}
+    .note{color:#9fb3d7;font-size:12px;padding:10px}
+    .disabled{opacity:.45;pointer-events:none}
+    .footer{margin-top:10px;color:var(--muted);font-size:12px}
+    .small{font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Unity 富文本生成器 <span class="pill">UGUI / TextMeshPro</span></h1>
+      <div class="mode">
+        <div class="toggle" role="tablist" aria-label="模式选择">
+          <button id="btnUGUI" class="active" aria-selected="true" aria-controls="panel-ugui">UGUI</button>
+          <button id="btnTMP" aria-selected="false" aria-controls="panel-tmp">TextMeshPro</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- 左：编辑器 -->
+      <section class="card" id="panel-ugui" role="tabpanel" aria-labelledby="btnUGUI">
+        <h2>输入与格式</h2>
+        <div class="toolbar" id="toolbar">
+          <button data-act="bold"><b>B</b></button>
+          <button data-act="italic"><i>I</i></button>
+          <button data-act="underline" data-tmp-only="1"><u>U</u></button>
+          <div class="chip">
+            <label class="ghost small">颜色</label>
+            <input type="color" id="colorPicker" value="#5ab0ff" />
+            <button data-act="color">应用</button>
+          </div>
+          <div class="chip">
+            <label class="ghost small">字号</label>
+            <input type="number" id="sizeVal" min="8" max="120" step="1" value="24" />
+            <button data-act="size">应用</button>
+          </div>
+          <div class="chip" id="linkChip" title="仅 TMP 支持 link">
+            <span class="ghost small">链接</span>
+            <input type="text" id="linkTarget" placeholder="payload 或 url" style="width:160px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 8px" />
+            <button data-act="link">插入</button>
+          </div>
+          <button data-act="mark" data-tmp-only="1">高亮</button>
+          <button data-act="strike" data-tmp-only="1">删除线</button>
+          <button data-act="clear">清除标签</button>
+        </div>
+        <textarea id="editor" spellcheck="false" placeholder="在此输入文本，选中一段后点上面按钮将自动包裹相应标签。"></textarea>
+        <div class="actions">
+          <span class="ghost small">选择文本后操作更快。支持快捷键：<span class="kbd">Ctrl/⌘+B</span>、<span class="kbd">Ctrl/⌘+I</span></span>
+        </div>
+      </section>
+
+      <!-- 右：输出与预览说明 -->
+      <section class="card" role="tabpanel" aria-labelledby="btnTMP">
+        <h2>生成结果</h2>
+        <textarea id="output" readonly></textarea>
+        <div class="actions">
+          <button id="btnCopy">复制结果</button>
+          <button id="btnSwap">用结果替换输入</button>
+        </div>
+        <div class="note">
+          <div class="small">• UGUI 支持：<code>&lt;b&gt;</code> <code>&lt;i&gt;</code> <code>&lt;color&gt;</code> <code>&lt;size&gt;</code><br>
+          • TMP 额外支持：<code>&lt;u&gt;</code> <code>&lt;s&gt;</code> <code>&lt;mark&gt;</code> <code>&lt;link&gt;</code> <code>&lt;sprite&gt;</code> 等。<br>
+          • 本工具仅包裹标签，不改变你的文字内容。清除标签是简单移除 <code>&lt;...&gt;</code>，对嵌套极端场景不做 AST 解析。</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">© 你自己的本地小工具。可直接保存此 HTML 并离线使用。</div>
+  </div>
+
+<script>
+(function(){
+  const editor = document.getElementById('editor');
+  const output = document.getElementById('output');
+  const colorPicker = document.getElementById('colorPicker');
+  const sizeVal = document.getElementById('sizeVal');
+  const linkTarget = document.getElementById('linkTarget');
+  const linkChip = document.getElementById('linkChip');
+  const btnUGUI = document.getElementById('btnUGUI');
+  const btnTMP  = document.getElementById('btnTMP');
+  let mode = 'UGUI';
+
+  function sync(){ output.value = editor.value; }
+  editor.addEventListener('input', sync); sync();
+
+  function setMode(m){
+    mode = m;
+    btnUGUI.classList.toggle('active', m==='UGUI');
+    btnTMP.classList.toggle('active', m==='TMP');
+    document.querySelectorAll('[data-tmp-only]')
+      .forEach(el=>{ el.classList.toggle('disabled', m!=='TMP'); });
+    linkChip.classList.toggle('disabled', m!=='TMP');
+    editor.focus(); sync();
+  }
+
+  btnUGUI.addEventListener('click', ()=>setMode('UGUI'));
+  btnTMP.addEventListener('click', ()=>setMode('TMP'));
+
+  function wrapSelection(openTag, closeTag){
+    const ta = editor; const start = ta.selectionStart; const end = ta.selectionEnd;
+    const txt = ta.value; const hasSel = end>start;
+    const selected = hasSel ? txt.slice(start,end) : '';
+    const insertion = hasSel ? (openTag+selected+closeTag) : (openTag+closeTag);
+    const newVal = txt.slice(0,start) + insertion + txt.slice(end);
+    ta.value = newVal; const caret = start + openTag.length + (hasSel?selected.length:0);
+    ta.setSelectionRange(caret, caret); ta.focus(); sync();
+  }
+
+  function hex(x){
+    const s = String(x||'').trim();
+    if(/^[#][0-9a-fA-F]{6}$/.test(s)) return s.toUpperCase();
+    if(/^[0-9a-fA-F]{6}$/.test(s)) return '#'+s.toUpperCase();
+    return '#FFFFFF';
+  }
+
+  function clearTags(){
+    const ta = editor; const start=ta.selectionStart; const end=ta.selectionEnd;
+    if(end>start){
+      const sub = ta.value.slice(start,end);
+      const cleaned = sub.replace(/<\/?[^>]+>/g, '');
+      ta.setRangeText(cleaned, start, end, 'select');
+    }else{
+      ta.value = ta.value.replace(/<\/?[^>]+>/g, '');
+    }
+    sync(); ta.focus();
+  }
+
+  document.getElementById('toolbar').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button'); if(!btn) return; const act = btn.dataset.act;
+    switch(act){
+      case 'bold':   wrapSelection('<b>','</b>'); break;
+      case 'italic': wrapSelection('<i>','</i>'); break;
+      case 'underline': if(mode==='TMP') wrapSelection('<u>','</u>'); break;
+      case 'strike': if(mode==='TMP') wrapSelection('<s>','</s>'); break;
+      case 'mark':   if(mode==='TMP') wrapSelection('<mark>','</mark>'); break;
+      case 'color':  {
+        const c = hex(colorPicker.value);
+        wrapSelection(`<color=${c}>`,`</color>`);
+      } break;
+      case 'size':   {
+        const s = parseInt(sizeVal.value||'24',10);
+        const sz = Math.min(Math.max(s,8),120);
+        wrapSelection(`<size=${sz}>`,`</size>`);
+      } break;
+      case 'link':   {
+        if(mode!=='TMP') return; const payload = (linkTarget.value||'payload').replace(/"/g,'&quot;');
+        wrapSelection(`<link="${payload}">`,`</link>`);
+      } break;
+      case 'clear':  clearTags(); break;
+    }
+  });
+
+  // 快捷键：Ctrl/⌘+B / I
+  editor.addEventListener('keydown', (e)=>{
+    if((e.ctrlKey||e.metaKey) && !e.shiftKey){
+      if(e.key==='b' || e.key==='B'){ e.preventDefault(); wrapSelection('<b>','</b>'); }
+      if(e.key==='i' || e.key==='I'){ e.preventDefault(); wrapSelection('<i>','</i>'); }
+    }
+  });
+
+  // 输出操作
+  document.getElementById('btnCopy').addEventListener('click', async()=>{
+    try{ await navigator.clipboard.writeText(output.value); btnFlash('btnCopy'); }catch(err){ alert('复制失败：'+err); }
+  });
+  document.getElementById('btnSwap').addEventListener('click', ()=>{ editor.value = output.value; editor.focus(); sync(); });
+
+  function btnFlash(id){
+    const b=document.getElementById(id); const txt=b.textContent; b.textContent='已复制';
+    setTimeout(()=>b.textContent=txt,900);
+  }
+
+  // 初始示例
+  editor.value = '选择一段文本，然后点击上方按钮自动包裹标签。\n示例：这是一段文字。';
+  sync();
+})();
+</script>
+</body>
+</html>
